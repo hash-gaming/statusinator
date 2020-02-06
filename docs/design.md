@@ -161,3 +161,59 @@ inbound_request_queue_size,<unix_epoch_timestamp>,3,count
 Once we have these metrics captured, we will then be able to load this data up any analysis tool that can ingest CSV data and analyze scaling and performance of the system.
 
 One thing to note is that the logs and metrics are being captured in this way to keep the total cost of running the system low. As this system scales out, we will probably switch to pushing logs and metrics to something like AWS CloudWatch or Datadog. This is discussed further in the scaling section.
+
+## Infrastructure
+
+This system requires, at bare minimum, some cloud storage and some policies for access. At full bore, the system can encompass some compute capacity, more storage, some database tables, access and execution roles as well as networking and monitoring stacks. None of this infrastructure will be built manually. Instead we will leverage the AWS Cloud Development Kit (CDK) or Terraform to build these resources for us. These libraries allow users to use programming constructs like loops and conditional statements to make decisions about their infrastructure. We will create another project to hold and deploy this infrastructure to the cloud as well as maintain the infrastructure under version control.
+
+As an additional note, if only AWS resources are in use, it is recommended that we use the AWS CDK because it works directly with AWS CloudFormation to orchestrate the creation and modification of resources. It also allows users to build higher level constructs that comprise of AWS resources coupled together for ease of duplication and deployment.
+
+## Security
+
+There are 2 major areas of security concern with this system
+
+1. access to the contents of the bucket
+1. access to the JSON datastore of user IDs and emoji
+
+The access to the contents of the bucket issue will be solved by using AWS Security Token Service (STS) to assume a role that only has access to that bucket specifically every time access to the bucket is needed. This access will then be logged to AWS CloudTrail and be retained for 90 days. This role will only have read permissions to the contents of the bucket.
+
+As an extension of the first case, the JSON datastore will be read in a simliar way since it is also stored within S3. The additional security concerns come from the `/onboard` API. To lock this feature down, only the administrators of the workspace will be allowed to use the `/onboard` API to onboard users. We will use the `admin.users.list` API to determine if a user is an administrator of the workspace and then only allow them to write too the `users.json` datastore. Once the datastore is updated and if and only if the event listener request queue is empty, we will prompt the event listener to rehydrate the user cache. This role will have read and write permissions to the bucket and actions will be stored in AWS CloudTrail for 90 days.
+
+## Scaling considerations
+
+To start, this system is built to be very approachable and cost-effective, the application (the go code) can be run on any Docker host that is connected to the internet and has the right permissions deployed to it and the cloud storage is using S3 which is the most cost effective storage solution available for the cloud.
+
+There are two types of scaling events that the system owners will need to consider - horizontal and upwards.
+
+Scaling upwards is relatively easy to do with this infrastructure because S3 can scale nearly infinitely in the storage that it has given that the system owners are able to pay for it and in the cloud, we can deploy this application to a Docker container running on a host that has access to more resources, up to, frankly, a ridiculous size.
+
+Scaling horizontally usually presents more challenges to systems. This system has specifically been designed in a way to enable system owners to scale it without having to make too many changes. The next few paragraphs consider each part of the system that will need scaling concerns.
+
+The application is already internally modeled as a network of microservices. We can leverage docker networking and split out the singular application into it's components. The input and output queues become websocket connections backed by input and output queues and the singular application becomes 3 separate containers that share a network. This allows each bit of the application to be scaled out independently and also allows each component to manage their own load balancing.
+
+As mentioned above already, S3 can grow to nearly infinite scale so the storage of the user pictures growing is already accounted for. The bottleneck that will impact performance will be the JSON datastore. Luckily, the JSON datastore has been modeled in a way that will ease the migration to a document store like AWS DynamoDB. This will also solve the concurrency problems that we would see with trying to support multiple readers and writers to a singular file-based datastore.
+
+As the application scales out, the metrics and observability story will also need to be scaled to match. To start, the host stores log files and metrics files that are exported to S3 periodically. We can tune the periodicity of the export to support large amounts of data as well as onboard the application to something like AWS CloudWatch Metrics and AWS CloudWatch Logs or Datadog to help with storage, analysis, and review of the metrics and the logs.
+
+In the interest of the complete documentation, as the application scales, each component and quite possibly the entire application will need to be put behind layers of load balancers. This can be a hidden cost that surprises system owners are they are scaling their system.
+
+## Open source considerations
+
+This project and all documentation written for it will be open sourced at a later date. While nascent, Github will be used as the storage and collaboration tool but the project will be marked private until ready for public release.
+
+## Open questions
+
+- How do we detect which properties changed when a `user_change` event comes in?
+- Can admins/owners of unpaid Slack communities update another user's profile?
+
+# Appendices
+
+## Appendix A - references
+
+1. [Slack Events API overview](https://api.slack.com/events-api)
+1. [Slack Events API - `user_change` event](https://api.slack.com/events/user_change)
+1. [Slack API - `users.profile.set`](https://api.slack.com/methods/users.profile.set)
+1. [Slack API - `users.setPhoto`](https://api.slack.com/methods/users.setPhoto)
+1. [Slack API - `users.profile.get`](https://api.slack.com/methods/users.profile.get)
+1. [Slack API - `admin.users.list`](https://api.slack.com/methods/admin.users.list)
+1. [AWS Cloud Development Kit getting started](https://docs.aws.amazon.com/cdk/latest/guide/getting_started.html)
