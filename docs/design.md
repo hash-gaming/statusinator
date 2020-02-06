@@ -120,3 +120,44 @@ In the third case, the service will start returning HTTP 503 with the `X-Slack-N
 The main cache maintained by the sytem will be the cache of users and their specific emoji maintained by the event listener component. This cache will be hydrated on startup using the data from the the storage helper and will be kept in memory. Rehydrating the cache will happen when there is a cache miss for a particular user and the master JSON stored with the storage helper has been updated since it was last read.
 
 The event listener will be the only reader of this cache and the storage helper will be the only writer for the master JSON that the cache will be based upon.
+
+## Architecture
+
+The architecture of the application will be modeled as microservices but contained within the same application for now. Additional details on scaling this system can be found in the scaling section. We will leverage goroutines to help create separation of concerns in the application as well as cater to the asynchronous and parallelized nature of most of the processing done by this system.
+
+Each component listed above will act as an orchestrator for running and managing goroutines. There will be an input and output queue (modeled by go channels) that will plumb information between the three components, as well as, between the user and the system and between the Slack and the system. As it happens, the request queue and the dead letter queue will also be go channels. There will be separate goroutines for each of the actions below and quite possibly more.
+
+- processing each event
+- processing each request from an onboarded user
+- getting the name and the picture associated with an emoji
+- setting the name of the user through the Slack API
+- setting the picture for the user through the Slack API
+
+## Observability
+
+Since each of the components above have been modeled as a microservice, we will have to make sure that the observability of the lifecycle of a request will still be preserved as it would be in a monolithic system. To this end, we will leverage both `stdout` and file based logging to be able to trace requests through the system. Each request coming in will be given a UUID and will have the same UUID until the request lifecycle has ended. This UUID will also be useful as we log the path that the request has taken throughout the system.
+
+In the interest of keeping the infrastructural complexity and cost low, we will most likely run this system on a small host with limited resources. This means that we can't store a lot of logs on the host itself and the logging will need to be moved out to some storage solution long term to enable the system owners to get a historical sense of the data as well. We will use S3 for this and will export logs from the host to S3 periodically. Depending on the data and the frequency of use of this system, it could be as quick as every hour and as slow as every day.
+
+The other aspect of observability are metrics. System metrics are time-series data that we want to capture to make sure that the system is performing to the promised SLA as well as it is right-size scaled to meet the users' demands. To that end, we will capture the following data with each metric having the ability to be disabled so as to not overload the senses.
+
+- onboarded user request lifecycle duration in milliseconds
+- Slack event parsing latency in milliseconds
+- inbound onboarded user request queue size as count
+- dead letter queue size as count
+- S3 data fetch latency in milliseconds
+- Slack API client latency in milliseconds
+- number of onboarded users as count
+- the size of the JSON datastore as bytes
+
+These metrics will be stored as an unsorted, append-only CSV file on the host and will follow the same export rules as the log files above. The format of the file is listed below
+
+```csv
+metric_name,timestamp,value,units
+request_lifecycle_duration,<unix_epoch_timestamp>,500,ms
+inbound_request_queue_size,<unix_epoch_timestamp>,3,count
+```
+
+Once we have these metrics captured, we will then be able to load this data up any analysis tool that can ingest CSV data and analyze scaling and performance of the system.
+
+One thing to note is that the logs and metrics are being captured in this way to keep the total cost of running the system low. As this system scales out, we will probably switch to pushing logs and metrics to something like AWS CloudWatch or Datadog. This is discussed further in the scaling section.
