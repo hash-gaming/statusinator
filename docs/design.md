@@ -90,3 +90,33 @@ The only charter of the Slack client is to construct requests and send them to t
 Given that the storage helper returns any data found for a user and emoji status pair, the Slack client will create a new request for changing the user's name as well as downloading the picture and then sending it to the Slack APi via the `users.setPhoto` method.
 
 There is relatively little functionality here and that's by design. Having previous experience working with Slack's APIs before, we have found it useful to have consistent behavior across our codebase even though the Slack API might change. It is also nice to have all of the potentially uncontrollable breaking points contained within a single "module".
+
+## Performance
+
+Since this is a request based system and users don't send requests in a periodic, synchronous manner, we will have to consider queueing, throttling and caching to improve the performance of the system. Each of these is talked about below.
+
+### Request queuing
+
+A request queue will live under the event listener component. For the purposes of this project, each time an onboarded user changes their status emoji, they are basically making a request into the system. This request may lead to no action from the system but it is still worth considering as a request. Therefore, we are going to start with the assumption that at any given time, there can only be 10 standby requests on the server.
+
+Once this capacity of 10 is exhausted, any additional requests that are made will divert to a dead letter queue. The dead letter queue will empty itself into the request queue once the request queue reaches an empty state. The dead letter queue will also have space for 10 requests and we will monitor the size of the dead letter queue to find the right size for the primary request queue. Too many requests in the dead letter queue would mean that the primary request queue needs to be scaled up.
+
+### Throttling
+
+Since the infrastructure supporting this project still needs to be approachable for individuals, we will have to have strict throttling rules. Throttling will be triggered in three cases
+
+1. if a user updates their emoji in quick succession resulting in two requests in the queue
+1. the request queue is full
+1. both the request queue and the dead letter queue are full
+
+In the first case, if we have already found a request for the user that has made a new request, we will drop the old request and add a new request for the user. This is to ascertain that a singular user is not able to become the noisy neighbor and DoS the service impacting other users.
+
+In the second case, the event listener will return an HTTP 503 to the API once we have determined that it is a request made by an onboarded user. This will cause the Slack Events API to retry the request again immediately, 1 minute later, and 5 minutes later. The first retry will put the request into the dead letter queue and stop the retry loop. It is expected that we won't need the 1 minute and 5 minute retries but we will have to look at the metrics and tune the system. We can detect a retry by reading the `X-Slack-Retry-Num` header in the incoming request.
+
+In the third case, the service will start returning HTTP 503 with the `X-Slack-No-Retry: 1` header so that Slack doesn't retry sending events at all. This would be considered a total failure case for the system.
+
+### Caching
+
+The main cache maintained by the sytem will be the cache of users and their specific emoji maintained by the event listener component. This cache will be hydrated on startup using the data from the the storage helper and will be kept in memory. Rehydrating the cache will happen when there is a cache miss for a particular user and the master JSON stored with the storage helper has been updated since it was last read.
+
+The event listener will be the only reader of this cache and the storage helper will be the only writer for the master JSON that the cache will be based upon.
