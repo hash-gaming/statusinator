@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"encoding/json"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -51,5 +53,6 @@ func main() {
 			}
 	}
 
-	fmt.Println(result)
+	indentedByte, err := json.MarshalIndent(result, "", "  ")
+	fmt.Println(string(indentedByte))
 }
