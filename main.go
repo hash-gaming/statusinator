@@ -14,6 +14,15 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 )
 
+func prettyPrint(unformattedJSON string) string {
+	formattedBytes, err := json.MarshalIndent(unformattedJson, "", "  ")
+	if err {
+		return ""
+	}
+
+	return string(formattedBytes)
+}
+
 func main() {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
@@ -53,6 +62,5 @@ func main() {
 			}
 	}
 
-	indentedByte, err := json.MarshalIndent(result, "", "  ")
-	fmt.Println(string(indentedByte))
+	fmt.Println(prettyPrint(result))
 }
