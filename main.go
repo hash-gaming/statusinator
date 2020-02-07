@@ -48,18 +48,18 @@ func main() {
 
 	result, err := svc.ListObjectsV2(input)
 	if err != nil {
-			if aerr, ok := err.(awserr.Error); ok {
-					switch aerr.Code() {
-					case s3.ErrCodeNoSuchBucket:
-						fmt.Println(s3.ErrCodeNoSuchBucket, aerr.Error())
-					default:
-						fmt.Println(aerr.Error())
-					}
-			} else {
-				// Print the error, cast err to awserr.Error to get the Code and
-				// Message from an error.
-				fmt.Println(err.Error())
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case s3.ErrCodeNoSuchBucket:
+				fmt.Println(s3.ErrCodeNoSuchBucket, aerr.Error())
+			default:
+				fmt.Println(aerr.Error())
 			}
+		} else {
+			// Print the error, cast err to awserr.Error to get the Code and
+			// Message from an error.
+			fmt.Println(err.Error())
+		}
 	}
 
 	fmt.Println(prettyPrint(result))
