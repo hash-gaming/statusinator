@@ -15,7 +15,7 @@ import (
 )
 
 func prettyPrint(unformattedJSON string) string {
-	formattedBytes, err := json.MarshalIndent(unformattedJson, "", "  ")
+	formattedBytes, err := json.MarshalIndent(unformattedJSON, "", "  ")
 	if err {
 		return ""
 	}
