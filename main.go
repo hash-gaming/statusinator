@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -15,7 +17,13 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 )
 
-func prettyPrint(unformattedJSON string) string {
+const (
+	EnvBucketName     = "BUCKET_NAME"
+	EnvRegion         = "REGION"
+	EnvServiceRoleArn = "SERVICE_ROLE_ARN"
+)
+
+func prettyPrint(unformattedJSON interface{}) string {
 	formattedBytes, err := json.MarshalIndent(unformattedJSON, "", "  ")
 	if err != nil {
 		return ""
@@ -26,9 +34,9 @@ func prettyPrint(unformattedJSON string) string {
 
 func checkEnv() {
 	envVars := [3]string{
-		"BUCKET",
-		"REGION",
-		"SERVICE_ROLE_ARN",
+		EnvBucketName,
+		EnvRegion,
+		EnvServiceRoleArn,
 	}
 
 	for _, v := range envVars {
@@ -56,32 +64,58 @@ func getS3Client(sesh *session.Session, region string) *s3.S3 {
 func main() {
 	checkEnv()
 
-	regionFromEnv, _ := os.LookupEnv("REGION")
+	regionFromEnv, _ := os.LookupEnv(EnvRegion)
+	roleArn, _ := os.LookupEnv(EnvServiceRoleArn)
+	bucket, _ := os.LookupEnv(EnvBucketName)
+	roleSessionName := "statusinator-test-session"
+
 	ownAccountSesh := getAWSSession(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	})
 	stsClient := getSTSClient(ownAccountSesh, regionFromEnv)
 
-	// input := &s3.ListObjectsV2Input{
-	// 	Bucket:  aws.String(bucket),
-	// 	MaxKeys: aws.Int64(2),
-	// }
+	serviceAssumeRoleInput := &sts.AssumeRoleInput{
+		RoleArn:         &roleArn,
+		RoleSessionName: &roleSessionName,
+	}
 
-	// result, err := svc.ListObjectsV2(input)
-	// if err != nil {
-	// 	if aerr, ok := err.(awserr.Error); ok {
-	// 		switch aerr.Code() {
-	// 		case s3.ErrCodeNoSuchBucket:
-	// 			fmt.Println(s3.ErrCodeNoSuchBucket, aerr.Error())
-	// 		default:
-	// 			fmt.Println(aerr.Error())
-	// 		}
-	// 	} else {
-	// 		// Print the error, cast err to awserr.Error to get the Code and
-	// 		// Message from an error.
-	// 		fmt.Println(err.Error())
-	// 	}
-	// }
+	assumedRole, assumeRoleErr := stsClient.AssumeRole(serviceAssumeRoleInput)
+	if assumeRoleErr != nil {
+		fmt.Println(assumeRoleErr)
+	}
 
-	// fmt.Println(prettyPrint(result))
+	cloudAccountSesh := getAWSSession(session.Options{
+		Config: *aws.NewConfig().WithCredentials(
+			credentials.NewStaticCredentials(
+				*assumedRole.Credentials.AccessKeyId,
+				*assumedRole.Credentials.SecretAccessKey,
+				*assumedRole.Credentials.SessionToken,
+			),
+		),
+	})
+
+	s3Client := getS3Client(cloudAccountSesh, regionFromEnv)
+
+	input := &s3.ListObjectsV2Input{
+		Bucket:  aws.String(bucket),
+		MaxKeys: aws.Int64(2),
+	}
+
+	result, err := s3Client.ListObjectsV2(input)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case s3.ErrCodeNoSuchBucket:
+				fmt.Println(s3.ErrCodeNoSuchBucket, aerr.Error())
+			default:
+				fmt.Println(aerr.Error())
+			}
+		} else {
+			// Print the error, cast err to awserr.Error to get the Code and
+			// Message from an error.
+			fmt.Println(err.Error())
+		}
+	}
+
+	fmt.Println(prettyPrint(result))
 }
