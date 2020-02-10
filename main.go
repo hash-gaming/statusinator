@@ -17,6 +17,7 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 )
 
+// Environment variable constants so that we don't keep messing stuff up
 const (
 	EnvBucketName     = "BUCKET_NAME"
 	EnvRegion         = "REGION"
@@ -66,7 +67,7 @@ func main() {
 
 	regionFromEnv, _ := os.LookupEnv(EnvRegion)
 	roleArn, _ := os.LookupEnv(EnvServiceRoleArn)
-	bucket, _ := os.LookupEnv(EnvBucketName)
+	bucketName, _ := os.LookupEnv(EnvBucketName)
 	roleSessionName := "statusinator-test-session"
 
 	ownAccountSesh := getAWSSession(session.Options{
@@ -97,7 +98,7 @@ func main() {
 	s3Client := getS3Client(cloudAccountSesh, regionFromEnv)
 
 	input := &s3.ListObjectsV2Input{
-		Bucket:  aws.String(bucket),
+		Bucket:  aws.String(bucketName),
 		MaxKeys: aws.Int64(2),
 	}
 
