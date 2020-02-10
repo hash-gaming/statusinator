@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 
@@ -17,54 +16,18 @@ import (
 	"github.com/YashdalfTheGray/statusinator/util"
 )
 
-// Environment variable constants so that we don't keep messing stuff up
-const (
-	EnvBucketName     = "BUCKET_NAME"
-	EnvRegion         = "REGION"
-	EnvServiceRoleArn = "SERVICE_ROLE_ARN"
-)
-
-func checkEnv() {
-	envVars := [3]string{
-		EnvBucketName,
-		EnvRegion,
-		EnvServiceRoleArn,
-	}
-
-	for _, v := range envVars {
-		_, ok := os.LookupEnv(v)
-		if !ok {
-			fmt.Println(fmt.Printf("No value found for %s in the .env file.", v))
-			os.Exit(1)
-			return
-		}
-	}
-}
-
-func getAWSSession(options session.Options) *session.Session {
-	return session.Must(session.NewSessionWithOptions(options))
-}
-
-func getSTSClient(sesh *session.Session, region string) *sts.STS {
-	return sts.New(sesh, aws.NewConfig().WithRegion(region))
-}
-
-func getS3Client(sesh *session.Session, region string) *s3.S3 {
-	return s3.New(sesh, aws.NewConfig().WithRegion(region))
-}
-
 func main() {
-	checkEnv()
+	util.CheckEnv()
 
-	regionFromEnv, _ := os.LookupEnv(EnvRegion)
-	roleArn, _ := os.LookupEnv(EnvServiceRoleArn)
-	bucketName, _ := os.LookupEnv(EnvBucketName)
+	regionFromEnv, _ := os.LookupEnv(util.EnvRegion)
+	roleArn, _ := os.LookupEnv(util.EnvServiceRoleArn)
+	bucketName, _ := os.LookupEnv(util.EnvBucketName)
 	roleSessionName := "statusinator-test-session"
 
-	ownAccountSesh := getAWSSession(session.Options{
+	ownAccountSesh := util.GetAWSSession(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	})
-	stsClient := getSTSClient(ownAccountSesh, regionFromEnv)
+	stsClient := util.GetSTSClient(ownAccountSesh, regionFromEnv)
 
 	serviceAssumeRoleInput := &sts.AssumeRoleInput{
 		RoleArn:         &roleArn,
@@ -76,7 +39,7 @@ func main() {
 		fmt.Println(assumeRoleErr)
 	}
 
-	cloudAccountSesh := getAWSSession(session.Options{
+	cloudAccountSesh := util.GetAWSSession(session.Options{
 		Config: *aws.NewConfig().WithCredentials(
 			credentials.NewStaticCredentials(
 				*assumedRole.Credentials.AccessKeyId,
@@ -86,7 +49,7 @@ func main() {
 		),
 	})
 
-	s3Client := getS3Client(cloudAccountSesh, regionFromEnv)
+	s3Client := util.GetS3Client(cloudAccountSesh, regionFromEnv)
 
 	input := &s3.ListObjectsV2Input{
 		Bucket:  aws.String(bucketName),
@@ -94,20 +57,7 @@ func main() {
 	}
 
 	result, err := s3Client.ListObjectsV2(input)
-	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case s3.ErrCodeNoSuchBucket:
-				fmt.Println(s3.ErrCodeNoSuchBucket, aerr.Error())
-			default:
-				fmt.Println(aerr.Error())
-			}
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			fmt.Println(err.Error())
-		}
-	}
+	util.HandleS3Error(err)
 
 	fmt.Println(util.PrettyPrint(result))
 }
