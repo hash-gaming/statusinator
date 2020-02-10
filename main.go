@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"encoding/json"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -15,6 +13,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 
 	_ "github.com/joho/godotenv/autoload"
+
+	"github.com/YashdalfTheGray/statusinator/util"
 )
 
 // Environment variable constants so that we don't keep messing stuff up
@@ -23,15 +23,6 @@ const (
 	EnvRegion         = "REGION"
 	EnvServiceRoleArn = "SERVICE_ROLE_ARN"
 )
-
-func prettyPrint(unformattedJSON interface{}) string {
-	formattedBytes, err := json.MarshalIndent(unformattedJSON, "", "  ")
-	if err != nil {
-		return ""
-	}
-
-	return string(formattedBytes)
-}
 
 func checkEnv() {
 	envVars := [3]string{
@@ -118,5 +109,5 @@ func main() {
 		}
 	}
 
-	fmt.Println(prettyPrint(result))
+	fmt.Println(util.PrettyPrint(result))
 }
