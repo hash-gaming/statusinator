@@ -5,22 +5,9 @@ import (
 	"os"
 )
 
-// Environment variable constants so that we don't keep messing stuff up
-const (
-	BucketName     = "BUCKET_NAME"
-	Region         = "REGION"
-	ServiceRoleArn = "SERVICE_ROLE_ARN"
-)
-
 // Check ensures that the necessary environment variables are present
 func Check() {
-	envVars := [3]string{
-		BucketName,
-		Region,
-		ServiceRoleArn,
-	}
-
-	for _, v := range envVars {
+	for _, v := range allEnvKeys {
 		_, ok := os.LookupEnv(v)
 		if !ok {
 			fmt.Println(fmt.Printf("No value found for %s in the .env file.", v))

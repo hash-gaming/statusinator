@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -34,15 +33,13 @@ func handleS3Error(err error) {
 func main() {
 	env.Check()
 
-	region, _ := os.LookupEnv(env.Region)
-	roleArn, _ := os.LookupEnv(env.ServiceRoleArn)
-	bucketName, _ := os.LookupEnv(env.BucketName)
+	roleArn := env.Get(env.ServiceRoleArn)
 	roleSessionName := "statusinator-test-session"
 
 	ownAccountSesh := util.GetAWSSession(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	})
-	stsClient := util.GetSTSClient(ownAccountSesh, region)
+	stsClient := util.GetSTSClient(ownAccountSesh, env.Get(env.Region))
 
 	serviceAssumeRoleInput := &sts.AssumeRoleInput{
 		RoleArn:         &roleArn,
@@ -64,10 +61,10 @@ func main() {
 		),
 	})
 
-	s3Client := util.GetS3Client(cloudAccountSesh, region)
+	s3Client := util.GetS3Client(cloudAccountSesh, env.Get(env.Region))
 
 	input := &s3.ListObjectsV2Input{
-		Bucket:  aws.String(bucketName),
+		Bucket:  aws.String(env.Get(env.BucketName)),
 		MaxKeys: aws.Int64(2),
 	}
 
