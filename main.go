@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -34,11 +35,17 @@ func main() {
 	env.Check()
 
 	roleArn := env.Get(env.ServiceRoleArn)
-	roleSessionName := "statusinator-test-session"
+	roleSessionName, err := util.GetSessionName(roleArn)
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+		return
+	}
 
 	ownAccountSesh := util.GetAWSSession(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	})
+
 	stsClient := util.GetSTSClient(ownAccountSesh, env.Get(env.Region))
 
 	serviceAssumeRoleInput := &sts.AssumeRoleInput{
