@@ -1,8 +1,6 @@
 package util
 
 import (
-	"fmt"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -26,20 +24,13 @@ func GetS3Client(sesh *session.Session, region string) *s3.S3 {
 	return s3.New(sesh, aws.NewConfig().WithRegion(region))
 }
 
-// HandleS3Error handles any AWS S3 error
-func HandleS3Error(err error) {
-	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case s3.ErrCodeNoSuchBucket:
-				fmt.Println(s3.ErrCodeNoSuchBucket, aerr.Error())
-			default:
-				fmt.Println(aerr.Error())
-			}
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			fmt.Println(err.Error())
-		}
+// HandleAWSError handles any AWS error
+func HandleAWSError(err error, handler func(arr awserr.Error) string) string {
+	if aerr, ok := err.(awserr.Error); ok {
+		return handler(aerr)
+	} else {
+		// Print the error, cast err to awserr.Error to get the Code and
+		// Message from an error.
+		return err.Error()
 	}
 }

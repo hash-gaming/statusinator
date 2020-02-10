@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 
@@ -15,6 +16,19 @@ import (
 
 	"github.com/YashdalfTheGray/statusinator/util"
 )
+
+func handleS3Error(err error) {
+	s3Handler := func(arr awserr.Error) string {
+		switch arr.Code() {
+		case s3.ErrCodeNoSuchBucket:
+			return s3.ErrCodeNoSuchBucket + arr.Error()
+		default:
+			return arr.Error()
+		}
+	}
+
+	fmt.Println(util.HandleAWSError(err, s3Handler))
+}
 
 func main() {
 	util.CheckEnv()
@@ -57,7 +71,9 @@ func main() {
 	}
 
 	result, err := s3Client.ListObjectsV2(input)
-	util.HandleS3Error(err)
+	if err != nil {
+		handleS3Error(err)
+	}
 
 	fmt.Println(util.PrettyPrint(result))
 }
