@@ -14,6 +14,7 @@ import (
 
 	_ "github.com/joho/godotenv/autoload"
 
+	"github.com/YashdalfTheGray/statusinator/env"
 	"github.com/YashdalfTheGray/statusinator/util"
 )
 
@@ -31,17 +32,17 @@ func handleS3Error(err error) {
 }
 
 func main() {
-	util.CheckEnv()
+	env.Check()
 
-	regionFromEnv, _ := os.LookupEnv(util.EnvRegion)
-	roleArn, _ := os.LookupEnv(util.EnvServiceRoleArn)
-	bucketName, _ := os.LookupEnv(util.EnvBucketName)
+	region, _ := os.LookupEnv(env.Region)
+	roleArn, _ := os.LookupEnv(env.ServiceRoleArn)
+	bucketName, _ := os.LookupEnv(env.BucketName)
 	roleSessionName := "statusinator-test-session"
 
 	ownAccountSesh := util.GetAWSSession(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	})
-	stsClient := util.GetSTSClient(ownAccountSesh, regionFromEnv)
+	stsClient := util.GetSTSClient(ownAccountSesh, region)
 
 	serviceAssumeRoleInput := &sts.AssumeRoleInput{
 		RoleArn:         &roleArn,
@@ -63,7 +64,7 @@ func main() {
 		),
 	})
 
-	s3Client := util.GetS3Client(cloudAccountSesh, regionFromEnv)
+	s3Client := util.GetS3Client(cloudAccountSesh, region)
 
 	input := &s3.ListObjectsV2Input{
 		Bucket:  aws.String(bucketName),

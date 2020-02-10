@@ -1,4 +1,4 @@
-package util
+package env
 
 import (
 	"fmt"
@@ -7,17 +7,17 @@ import (
 
 // Environment variable constants so that we don't keep messing stuff up
 const (
-	EnvBucketName     = "BUCKET_NAME"
-	EnvRegion         = "REGION"
-	EnvServiceRoleArn = "SERVICE_ROLE_ARN"
+	BucketName     = "BUCKET_NAME"
+	Region         = "REGION"
+	ServiceRoleArn = "SERVICE_ROLE_ARN"
 )
 
-// CheckEnv ensures that the necessary environment variables are present
-func CheckEnv() {
+// Check ensures that the necessary environment variables are present
+func Check() {
 	envVars := [3]string{
-		EnvBucketName,
-		EnvRegion,
-		EnvServiceRoleArn,
+		BucketName,
+		Region,
+		ServiceRoleArn,
 	}
 
 	for _, v := range envVars {
