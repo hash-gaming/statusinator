@@ -1,6 +1,9 @@
 package env
 
-import "os"
+import (
+	"os"
+	"strings"
+)
 
 var envVarMap = make(map[string]string, len(allEnvKeys))
 
@@ -12,4 +15,11 @@ func Get(envKey string) string {
 		envVarMap[envKey] = envValue
 	}
 	return envVarMap[envKey]
+}
+
+// IsDevelopment returns whether the runtime environment
+// is development. Specifically, it checks the value
+// of the ENV environment variable.
+func IsDevelopment() bool {
+	return strings.ToLower(Get(RuntimeEnv)) == RuntimeDev
 }
