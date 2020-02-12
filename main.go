@@ -2,18 +2,16 @@ package main
 
 import (
 	"fmt"
-	"os"
+
+	_ "github.com/joho/godotenv/autoload"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
-
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/sts"
 
-	_ "github.com/joho/godotenv/autoload"
-
+	"github.com/YashdalfTheGray/statusinator/auth"
 	"github.com/YashdalfTheGray/statusinator/env"
 	"github.com/YashdalfTheGray/statusinator/util"
 )
@@ -34,38 +32,24 @@ func handleS3Error(err error) {
 func main() {
 	env.Check()
 
+	var creds *credentials.Credentials
 	roleArn := env.Get(env.ServiceRoleArn)
-	roleSessionName, err := util.GetSessionName(roleArn)
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
-		return
-	}
 
-	ownAccountSesh := util.GetAWSSession(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	})
+	if env.IsDevelopment() {
+		assumedRole, assumeRoleErr := auth.GetDevAuth(roleArn)
+		if assumeRoleErr != nil {
+			fmt.Println(assumeRoleErr)
+		}
 
-	stsClient := util.GetSTSClient(ownAccountSesh, env.Get(env.Region))
-
-	serviceAssumeRoleInput := &sts.AssumeRoleInput{
-		RoleArn:         &roleArn,
-		RoleSessionName: &roleSessionName,
-	}
-
-	assumedRole, assumeRoleErr := stsClient.AssumeRole(serviceAssumeRoleInput)
-	if assumeRoleErr != nil {
-		fmt.Println(assumeRoleErr)
+		creds = credentials.NewStaticCredentials(
+			*assumedRole.Credentials.AccessKeyId,
+			*assumedRole.Credentials.SecretAccessKey,
+			*assumedRole.Credentials.SessionToken,
+		)
 	}
 
 	cloudAccountSesh := util.GetAWSSession(session.Options{
-		Config: *aws.NewConfig().WithCredentials(
-			credentials.NewStaticCredentials(
-				*assumedRole.Credentials.AccessKeyId,
-				*assumedRole.Credentials.SecretAccessKey,
-				*assumedRole.Credentials.SessionToken,
-			),
-		),
+		Config: *aws.NewConfig().WithCredentials(creds),
 	})
 
 	s3Client := util.GetS3Client(cloudAccountSesh, env.Get(env.Region))
