@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	_ "github.com/joho/godotenv/autoload"
 
@@ -46,6 +47,10 @@ func main() {
 			*assumedRole.Credentials.SecretAccessKey,
 			*assumedRole.Credentials.SessionToken,
 		)
+	} else {
+		fmt.Println("No other runtime environment currently configured besides development.")
+		os.Exit(1)
+		return
 	}
 
 	cloudAccountSesh := util.GetAWSSession(session.Options{
