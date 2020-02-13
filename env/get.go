@@ -5,8 +5,6 @@ import (
 	"strings"
 )
 
-var envVarMap = make(map[string]string, len(allEnvKeys))
-
 // Get returns the value of an environment variable. If it doesn't
 // exist, it asks os.LookupEnv and caches the value.
 func Get(envKey string) string {

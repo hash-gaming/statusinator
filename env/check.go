@@ -15,6 +15,8 @@ func Check() {
 			os.Exit(1)
 		}
 
+		envVarMap[key] = value
+
 		if key == RuntimeEnv {
 			if strings.ToLower(value) != RuntimeDev && strings.ToLower(value) != RuntimeProd {
 				fmt.Println("ENV can only be set to either 'development' or 'production'.")

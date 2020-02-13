@@ -19,3 +19,5 @@ var allEnvKeys = []string{
 	RuntimeEnv,
 	ServiceRoleArn,
 }
+
+var envVarMap = make(map[string]string, len(allEnvKeys))
