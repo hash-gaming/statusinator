@@ -47,6 +47,14 @@ func main() {
 			*assumedRole.Credentials.SecretAccessKey,
 			*assumedRole.Credentials.SessionToken,
 		)
+	} else if env.IsProduction() {
+		awsAccessKeyID, awsSecretAccessKey := env.Get(env.AWSAccessKeyID), env.Get(env.AWSSecretAccessKey)
+
+		creds = credentials.NewStaticCredentials(
+			awsAccessKeyID,
+			awsSecretAccessKey,
+			"",
+		)
 	} else {
 		fmt.Println("No other runtime environment currently configured besides development.")
 		os.Exit(1)
