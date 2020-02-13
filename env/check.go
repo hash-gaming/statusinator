@@ -8,7 +8,7 @@ import (
 
 // Check ensures that the necessary environment variables are present
 func Check() {
-	for _, key := range allEnvKeys {
+	for _, key := range requiredEnvKeys {
 		value, ok := os.LookupEnv(key)
 		if !ok {
 			fmt.Println(fmt.Printf("No value found for %s in the .env file.", key))
