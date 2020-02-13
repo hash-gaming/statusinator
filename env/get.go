@@ -21,3 +21,10 @@ func Get(envKey string) string {
 func IsDevelopment() bool {
 	return strings.ToLower(Get(RuntimeEnv)) == RuntimeDev
 }
+
+// IsProduction returns whether the runtime environment
+// is production. Specifically, it checks the value
+// of the ENV environment variable.
+func IsProduction() bool {
+	return strings.ToLower(Get(RuntimeEnv)) == RuntimeProd
+}
