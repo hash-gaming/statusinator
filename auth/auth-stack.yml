@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "A template that spins up all of the auth stuff we need for statusinator"
+
+Parameters:
+  TrustedAccounts:
+    Type: CommaDelimitedList
+    Description: "The accounts whitelisted to assume the statusinator role in ARN format"
+    NoEcho: true
+  UserPassword:
+    Type: String
+    Description: "The password to set for the statusinator user"
+    NoEcho: true
+
+Resources: 
+  StatusinatorPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: "StatusinatorPolicy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: "S3Policy"
+            Effect: "Allow"
+            Action:
+              - "s3:*Object*"
+              - "s3:ListBucket"
+              - "s3:GetBucket*"
+            Resource:
+              - "arn:aws:s3::::*/*"
+              - "arn:aws:s3::::statusinator*"
+  StatusinatorRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: "TrustedAccounts"
+            Effect: "Allow"
+            Action:
+              - "sts:AssumeRole"
+            Principal:
+              AWS: !Ref TrustedAccounts
+      Description: "a role to give dev accounts statusinator permissions"
+      MaxSessionDuration: 3600
+      Policies:
+        - !Ref StatusinatorPolicy
+      RoleName: "StatusinatorRole"
+  StatusinatorUser:
+    Type: "AWS::IAM::Role"
+    Properties:
+      LoginProfile:
+        Password: !Ref UserPassword
+        PasswordResetRequired: false
+      Policies:
+        - !Ref StatusinatorPolicy
+      UserName: "StatusinatorUser"
+  StatusinatorUserAccessKey:
+    Type: "AWS::IAM::AccessKey"
+    Properties:
+      UserName: !Ref StatusinatorUser
+
+Outputs:
+  StatusinatorRoleArn:
+    Description: "The ARN of the newly created role"
+    Value: !GetAtt StatusinatorRole.Arn
+  StatusinatorUserAccessKeyID:
+    Description: "The access key id that goes along with the newly created user"
+    Value: !Ref StatusinatorUserAccessKey
+  StatusinatorUserSecretAccessKey:
+    Description: "The secret access key that goes along with the newly created user"
+    Value: !GetAtt StatusinatorUserAccessKey.SecretAccessKey
