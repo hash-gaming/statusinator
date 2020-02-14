@@ -28,10 +28,6 @@ Resources:
             Resource:
               - "arn:aws:s3::::*/*"
               - "arn:aws:s3::::statusinator*"
-      Roles:
-        - !Ref StatusinatorRole
-      Users:
-        - !Ref StatusinatorUser
   StatusinatorRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -72,4 +68,4 @@ Outputs:
     Value: !Ref StatusinatorUserAccessKey
   StatusinatorUserSecretAccessKey:
     Description: "The secret access key that goes along with the newly created user"
-    Value: !GetAtt StatusinatorUserAccessKey.SecretAccesKey
+    Value: !GetAtt StatusinatorUserAccessKey.SecretAccessKey
