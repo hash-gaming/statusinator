@@ -6,6 +6,16 @@ an automated way to change name and profile picture based off of slack statuses.
 
 Once you have the repository pulled down, a simple `go get -t ./...` will install all the dependencies. Although, the dependency installation will also happen on `go build`.
 
+## Initialization
+
+### Automated way using AWS CloudFormation
+
+To start running this application, there needs to be some resource creation for the authentication pieces of this application. There is a AWS CloudFormation stack included in the auth folder that can be used to automatically set up the right pieces. 
+
+### Manual Setup
+
+There are 4 resources that need to be created here. A role for the developers to assume during development, a user that the service can use to run in production, a policy that is shared between the two and an access key pair for the service user. 
+
 ## Running
 
 The first thing you're going to have to do is create a `.env` file that has the following properties
