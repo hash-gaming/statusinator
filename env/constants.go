@@ -17,6 +17,40 @@ const (
 	RuntimeProd = "production"
 )
 
+func getRequiredEnvKeys() []string {
+	if IsProduction() {
+		return []string{
+			BucketName,
+			Region,
+			AWSAccessKeyID,
+			AWSSecretAccessKey,
+		}
+	} else if IsDevelopment() {
+		return []string{
+			BucketName,
+			Region,
+			ServiceRoleArn,
+		}
+	}
+
+	panic("Please set ENV to either 'development' or 'production'")
+}
+
+func getOptionalEnvKeys() []string {
+	if IsProduction() {
+		return []string{
+			ServiceRoleArn,
+		}
+	} else if IsDevelopment() {
+		return []string{
+			AWSAccessKeyID,
+			AWSSecretAccessKey,
+		}
+	}
+
+	panic("Please set ENV to either 'development' or 'production'")
+}
+
 var requiredEnvKeys = []string{
 	BucketName,
 	Region,
