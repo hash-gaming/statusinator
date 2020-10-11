@@ -1,4 +1,4 @@
-module github.com/YashdalfTheGray/statusinator
+module github.com/hash-gaming/statusinator
 
 go 1.13
 
