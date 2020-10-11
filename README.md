@@ -1,3 +1,4 @@
+![Sanity Test](https://github.com/hash-gaming/statusinator/workflows/Sanity%20Test/badge.svg)
 # statusinator
 
 an automated way to change name and profile picture based off of slack statuses.
