@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/YashdalfTheGray/statusinator/util"
+	"github.com/hash-gaming/statusinator/util"
 )
 
 func TestAWSHelpersGetSessionName(t *testing.T) {

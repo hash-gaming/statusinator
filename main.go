@@ -12,9 +12,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 
-	"github.com/YashdalfTheGray/statusinator/auth"
-	"github.com/YashdalfTheGray/statusinator/env"
-	"github.com/YashdalfTheGray/statusinator/util"
+	"github.com/hash-gaming/statusinator/auth"
+	"github.com/hash-gaming/statusinator/env"
+	"github.com/hash-gaming/statusinator/util"
 )
 
 func handleS3Error(err error) {

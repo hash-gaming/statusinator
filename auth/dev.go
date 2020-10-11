@@ -4,8 +4,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts"
 
-	"github.com/YashdalfTheGray/statusinator/env"
-	"github.com/YashdalfTheGray/statusinator/util"
+	"github.com/hash-gaming/statusinator/env"
+	"github.com/hash-gaming/statusinator/util"
 )
 
 // GetDevAuth returns the credentials for an authenticated session using AWS STS
